@@ -384,4 +384,5 @@ export default function SalonGroUltimateApp() {
             </div>
           </div>
         )}
+        </main>
 
