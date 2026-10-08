@@ -5,7 +5,7 @@ import {
   Mic, Package, TrendingUp, Lock, CheckCircle, AlertCircle, Phone
 } from 'lucide-react';
 
-export default function SalonGroUltimateApp() {
+ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [activeTab, setActiveTab] = useState('pos');
   const [billingMode, setBillingMode] = useState('quick'); // 'quick' or 'detailed'
