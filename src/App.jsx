@@ -385,4 +385,10 @@ export default function SalonGroUltimateApp() {
           </div>
         )}
         </main>
+         
+</div>
+);
+}
 
+export default App; 
+    
