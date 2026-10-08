@@ -385,18 +385,3 @@ export default function SalonGroUltimateApp() {
           </div>
         )}
 
-        {/* --- TAB 3: DUAL INVENTORY --- */}
-        {activeTab === 'inventory' && (
-          <div className="bg-[#161D2E] p-6 rounded-2xl border border-gray-800 space-y-6">
-            <div>
-              <h3 className="font-bold text-xl text-white mb-1">Dual Inventory Management</h3>
-              <p className="text-gray-400 text-xs">Type 1: Salon Back-Bar Consumption • Type 2: Retail Counter Sales</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-[#0B0F17] rounded-xl border border-gray-800">
-                <h4 className="font-bold text-sm text-[#D4AF37] mb-2">Back-Bar Stock (Service Usage)</h4>
-                <p className="text-xs text-gray-400">Shampoos, Color tubes, Facial kits — auto-deducted per service.</p>
-              </div>
-              <div className="p-4 bg-[#0B0F17] rounded-xl border border-gray-800">
-                <h4 className="font-bold text-sm text-emerald-400 mb-2">Retail Counter Stock (Direct Sale)</h4>
-                <p cl
