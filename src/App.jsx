@@ -1,4 +1,4 @@
-Import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { LayoutDashboard, Scissors, Users, Package, Calendar, LogOut } from 'lucide-react';
 import LoginSignup from './components/LoginSignup';
 import POSBilling from './components/POSBilling';
