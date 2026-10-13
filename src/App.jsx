@@ -1,22 +1,33 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Scissors, Users, Package, Calendar, LogOut } from 'lucide-react';
-import LoginSignup from './components/LoginSignup';
 import POSBilling from './components/POSBilling';
 import SmartCRM from './components/SmartCRM';
 import InventoryManager from './components/InventoryManager';
+import SettingsManager from './components/SettingsManager';
+import SuperAdmin from './components/SuperAdmin';
+import LoginSignup from './components/LoginSignup';
 import AppointmentsCalendar from './components/AppointmentsCalendar';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState('pos');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentSalon, setCurrentSalon] = useState(null);
 
-  // Agar user logged-in nahi hai toh Login/Signup screen dikhayenge
+  // Secret SuperAdmin Route Detection (URL: ?admin=true ya hash #superadmin)
+  const isSuperAdminRoute = window.location.search.includes('admin=true') || window.location.hash === '#superadmin';
+
+  if (isSuperAdminRoute) {
+    return <SuperAdmin />;
+  }
+
   if (!isLoggedIn) {
-    return <LoginSignup onLoginSuccess={() => setIsLoggedIn(true)} />;
+    return <LoginSignup onLoginSuccess={(salonData) => {
+      setCurrentSalon(salonData);
+      setIsLoggedIn(true);
+    }} />;
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col md:flex-row font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row font-sans">
       {/* Sidebar Navigation */}
       <aside className="w-full md:w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col justify-between shrink-0">
         <div className="space-y-6">
@@ -26,7 +37,7 @@ export default function App() {
               SG
             </div>
             <div>
-              <h1 className="font-black text-base text-amber-500 tracking-wide">SalonGro</h1>
+              <h1 className="font-bold text-base text-amber-500 tracking-wide">{currentSalon?.salon_name || 'SalonGro'}</h1>
               <p className="text-[10px] text-slate-400">PWA SaaS POS Platform</p>
             </div>
           </div>
@@ -41,7 +52,7 @@ export default function App() {
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
-              <Scissors size={16} /> POS & Checkout
+              ✂️ POS & Checkout
             </button>
             <button
               onClick={() => setActiveTab('crm')}
@@ -51,7 +62,7 @@ export default function App() {
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
-              <Users size={16} /> Smart CRM
+              👥 Smart CRM
             </button>
             <button
               onClick={() => setActiveTab('inventory')}
@@ -61,7 +72,7 @@ export default function App() {
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
-              <Package size={16} /> Inventory Manager
+              📦 Inventory Manager
             </button>
             <button
               onClick={() => setActiveTab('appointments')}
@@ -71,7 +82,17 @@ export default function App() {
                   : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
-              <Calendar size={16} /> Appointments Calendar
+              📅 Appointments Calendar
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
+                activeTab === 'settings'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              ⚙️ Salon Settings
             </button>
           </nav>
         </div>
@@ -82,18 +103,19 @@ export default function App() {
             onClick={() => setIsLoggedIn(false)}
             className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 transition"
           >
-            <LogOut size={16} /> Logout System
+            🚪 Logout System
           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto bg-slate-950">
-        {activeTab === 'pos' && <POSBilling />}
-        {activeTab === 'crm' && <SmartCRM />}
-        {activeTab === 'inventory' && <InventoryManager />}
-        {activeTab === 'appointments' && <AppointmentsCalendar />}
+      <main className="flex-1 overflow-y-auto bg-slate-950 p-4 md:p-8">
+        {activeTab === 'pos' && <POSBilling salonData={currentSalon} />}
+        {activeTab === 'crm' && <SmartCRM salonData={currentSalon} />}
+        {activeTab === 'inventory' && <InventoryManager salonData={currentSalon} />}
+        {activeTab === 'appointments' && <AppointmentsCalendar salonData={currentSalon} />}
+        {activeTab === 'settings' && <SettingsManager salonData={currentSalon} />}
       </main>
     </div>
   );
-                }
+          }
