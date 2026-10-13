@@ -13,14 +13,13 @@ export default function POSBilling({ salonData }) {
   // GST Settings
   const [gstType, setGstType] = useState('EXCLUSIVE'); // 'EXCLUSIVE' ya 'INCLUSIVE'
   
-  // Single-Box Service Entry
-  const [customItem, setCustomItem] = useState({ name: '', price: '', serviceDiscValue: 0, serviceDiscType: 'FIXED' });
+  // Single-Box Service Entry (Per-service discount optional)
+  const [customItem, setCustomItem] = useState({ name: '', price: '', serviceDiscValue: '', serviceDiscType: 'FIXED' });
   const [isListening, setIsListening] = useState(false);
 
-  // Local Storage Sync (Inventory, Clients, Settings)
+  // Local Storage Sync
   const savedSettings = JSON.parse(localStorage.getItem(`salon_settings_${salonData?.id || 'default'}`)) || salonData || {};
   const [inventoryList, setInventoryList] = useState(JSON.parse(localStorage.getItem('salon_inventory')) || []);
-  const catalogList = savedSettings.catalog || [];
   const staffList = savedSettings.staff_list || [];
   const defaultGstRate = savedSettings.gst_percent || 0;
   const salonWhatsApp = savedSettings.whatsapp_number || savedSettings.phone || '';
@@ -42,15 +41,15 @@ export default function POSBilling({ salonData }) {
       if (numbers) {
         const price = numbers[numbers.length - 1];
         const name = transcript.replace(price, '').trim();
-        setCustomItem({ name: name || 'Voice Service', price: price, serviceDiscValue: 0, serviceDiscType: 'FIXED' });
+        setCustomItem({ name: name || 'Voice Service', price: price, serviceDiscValue: '', serviceDiscType: 'FIXED' });
       } else {
-        setCustomItem({ name: transcript, price: '', serviceDiscValue: 0, serviceDiscType: 'FIXED' });
+        setCustomItem({ name: transcript, price: '', serviceDiscValue: '', serviceDiscType: 'FIXED' });
       }
     };
     recognition.start();
   };
 
-  // Add Item to Cart with Individual Service Level Discount (2 Options)
+  // Add Item to Cart with OPTIONAL Per-Service Level Discount
   const handleAddCustomService = () => {
     if (!customItem.name || !customItem.price) {
       alert('Kripya Service Name aur Rate dono bharein!');
@@ -58,10 +57,15 @@ export default function POSBilling({ salonData }) {
     }
     const rawPrice = parseFloat(customItem.price);
     let itemDiscount = 0;
-    if (customItem.serviceDiscType === 'PERCENT') {
-      itemDiscount = (rawPrice * parseFloat(customItem.serviceDiscValue || 0)) / 100;
-    } else {
-      itemDiscount = parseFloat(customItem.serviceDiscValue || 0);
+    
+    // Check if optional discount is provided
+    const discInput = parseFloat(customItem.serviceDiscValue);
+    if (!isNaN(discInput) && discInput > 0) {
+      if (customItem.serviceDiscType === 'PERCENT') {
+        itemDiscount = (rawPrice * discInput) / 100;
+      } else {
+        itemDiscount = discInput;
+      }
     }
 
     const finalItemPrice = Math.max(0, rawPrice - itemDiscount);
@@ -71,13 +75,13 @@ export default function POSBilling({ salonData }) {
       name: customItem.name,
       originalPrice: rawPrice,
       discountedPrice: finalItemPrice,
-      discValue: customItem.serviceDiscValue,
+      discValue: discInput || 0,
       discType: customItem.serviceDiscType,
       qty: 1
     };
 
     setCart([...cart, newItem]);
-    setCustomItem({ name: '', price: '', serviceDiscValue: 0, serviceDiscType: 'FIXED' });
+    setCustomItem({ name: '', price: '', serviceDiscValue: '', serviceDiscType: 'FIXED' });
   };
 
   const removeFromCart = (id) => {
@@ -125,7 +129,7 @@ export default function POSBilling({ salonData }) {
 
   const grandTotal = Math.round(gstType === 'EXCLUSIVE' ? taxableAmount + gstAmount : taxableAmount);
 
-  // Complete Checkout with Stock Minus + Auto Client ID + Category Sync
+  // Complete Checkout with Stock Minus + Auto Client ID
   const handleProcessBill = (isThermalPrint = false) => {
     if (!clientName || !clientPhone) {
       alert('Kripya Client Name aur Number zaroor bharein!');
@@ -261,20 +265,20 @@ export default function POSBilling({ salonData }) {
             />
             <button
               onClick={handleSaveClientOnly}
-              className="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold p-3 rounded-xl border border-slate-700"
+              className="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold p-3 rounded-xl border border-slate-700 cursor-pointer"
             >
               💾 Save Client
             </button>
           </div>
         </div>
 
-        {/* Single-Box Quick Entry with Per-Service 2 Discount Options */}
+        {/* Single-Box Quick Entry with Optional Per-Service Discount */}
         <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3">
           <div className="flex justify-between items-center">
-            <h3 className="font-bold text-sm text-amber-400">⚡ Single-Box Quick Entry & Per-Service Discount</h3>
+            <h3 className="font-bold text-sm text-amber-400">⚡ Single-Box Quick Entry (Optional Per-Service Discount)</h3>
             <button
               onClick={startVoiceBilling}
-              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'}`}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'}`}
             >
               🎤 {isListening ? 'Listening...' : 'Voice Entry'}
             </button>
@@ -283,20 +287,20 @@ export default function POSBilling({ salonData }) {
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs">
             <input
               type="text"
-              placeholder="Service Name"
+              placeholder="Service Name *"
               value={customItem.name}
               onChange={(e) => setCustomItem({ ...customItem, name: e.target.value })}
               className="sm:col-span-2 bg-slate-950 border border-slate-800 p-3 rounded-xl text-white"
             />
             <input
               type="number"
-              placeholder="Price (₹)"
+              placeholder="Price (₹) *"
               value={customItem.price}
               onChange={(e) => setCustomItem({ ...customItem, price: e.target.value })}
               className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-white"
             />
             
-            {/* Per Service Discount (2 Options: Flat / %) */}
+            {/* Optional Per Service Discount (Flat / %) */}
             <div className="flex gap-1">
               <select
                 value={customItem.serviceDiscType}
@@ -308,7 +312,7 @@ export default function POSBilling({ salonData }) {
               </select>
               <input
                 type="number"
-                placeholder="Disc"
+                placeholder="Disc (Opt)"
                 value={customItem.serviceDiscValue}
                 onChange={(e) => setCustomItem({ ...customItem, serviceDiscValue: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-800 p-2 rounded-xl text-white"
@@ -317,7 +321,7 @@ export default function POSBilling({ salonData }) {
 
             <button
               onClick={handleAddCustomService}
-              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black p-3 rounded-xl"
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black p-3 rounded-xl cursor-pointer"
             >
               + Add Item
             </button>
@@ -325,7 +329,7 @@ export default function POSBilling({ salonData }) {
         </div>
       </div>
 
-      {/* Right Column: Checkout + Total Discount (2 Options) + GST (2 Options) */}
+      {/* Right Column: Checkout + Total Discount + GST */}
       <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 h-fit">
         <h3 className="font-bold text-amber-400 text-base border-b border-slate-800 pb-2">🛒 Active Bill Summary</h3>
 
@@ -347,18 +351,21 @@ export default function POSBilling({ salonData }) {
               <div key={item.id} className="flex justify-between items-center bg-slate-950 p-2 rounded-lg">
                 <div>
                   <div className="font-bold text-white">{item.name}</div>
-                  <div className="text-[10px] text-slate-400">Orig: ₹{item.originalPrice} | Net: ₹{item.discountedPrice}</div>
+                  <div className="text-[10px] text-slate-400">
+                    {item.discValue > 0 ? `Orig: ₹${item.originalPrice} | Disc: -${item.discValue}${item.discType === 'PERCENT' ? '%' : '₹'} | ` : ''}
+                    Net: ₹{item.discountedPrice}
+                  </div>
                 </div>
-                <button onClick={() => removeFromCart(item.id)} className="text-rose-400 font-bold px-1">✕</button>
+                <button onClick={() => removeFromCart(item.id)} className="text-rose-400 font-bold px-1 cursor-pointer">✕</button>
               </div>
             ))
           )}
         </div>
 
-        {/* Total Bill Level Discount (2 Options) & GST (2 Options) */}
+        {/* Total Bill Level Discount & GST */}
         <div className="space-y-3 text-xs bg-slate-950 p-3 rounded-xl border border-slate-800">
           <div>
-            <label className="block text-[10px] text-slate-400 mb-1 font-bold">TOTAL BILL DISCOUNT</label>
+            <label className="block text-[10px] text-slate-400 mb-1 font-bold">TOTAL BILL DISCOUNT (OPTIONAL)</label>
             <div className="flex gap-2">
               <select
                 value={totalDiscountType}
@@ -383,14 +390,14 @@ export default function POSBilling({ salonData }) {
               <button
                 type="button"
                 onClick={() => setGstType('EXCLUSIVE')}
-                className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold ${gstType === 'EXCLUSIVE' ? 'bg-amber-500 text-slate-950' : 'bg-slate-900 text-slate-400'}`}
+                className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer ${gstType === 'EXCLUSIVE' ? 'bg-amber-500 text-slate-950' : 'bg-slate-900 text-slate-400'}`}
               >
                 Exclusive (+GST)
               </button>
               <button
                 type="button"
                 onClick={() => setGstType('INCLUSIVE')}
-                className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold ${gstType === 'INCLUSIVE' ? 'bg-amber-500 text-slate-950' : 'bg-slate-900 text-slate-400'}`}
+                className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer ${gstType === 'INCLUSIVE' ? 'bg-amber-500 text-slate-950' : 'bg-slate-900 text-slate-400'}`}
               >
                 Inclusive (Included)
               </button>
@@ -410,13 +417,13 @@ export default function POSBilling({ salonData }) {
         <div className="space-y-2 pt-2">
           <button
             onClick={() => handleProcessBill(false)}
-            className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3 rounded-xl text-xs transition"
+            className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3 rounded-xl text-xs transition cursor-pointer"
           >
             📱 Send Zero-API WhatsApp Bill
           </button>
           <button
             onClick={() => handleProcessBill(true)}
-            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl text-xs transition"
+            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl text-xs transition cursor-pointer"
           >
             🖨️ Thermal Paper Print
           </button>
@@ -424,4 +431,4 @@ export default function POSBilling({ salonData }) {
       </div>
     </div>
   );
-    }
+      }
