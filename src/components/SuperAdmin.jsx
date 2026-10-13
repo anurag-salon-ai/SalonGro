@@ -1,21 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Lock, CheckCircle, XCircle, Search, Activity, Trash2 } from 'lucide-react';
 
-export default function SuperAdmin({ salonsList, onToggleSalonStatus }) {
+export default function SuperAdmin() {
   const [passkey, setPasskey] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [salonsList, setSalonsList] = useState([]);
 
-  // Aapka Secret Master Key (Aap ise change kar sakte hain)
+  // Aapka Secret Master Key
   const MASTER_SECRET = 'SUPER_SALON_2026_SECRET';
+
+  // LocalStorage se automatic salons list load karna
+  useEffect(() => {
+    const loadedSalons = JSON.parse(localStorage.getItem('salongro_registered_salons')) || [];
+    setSalonsList(loadedSalons);
+  }, [isAuthenticated]);
 
   const handleLogin = (e) => {
     e.preventDefault();
     if (passkey === MASTER_SECRET) {
       setIsAuthenticated(true);
     } else {
-      alert('Galat Master Secret Key hai!');
+      alert('❌ Galat Master Secret Key hai!');
     }
+  };
+
+  const handleToggleSalonStatus = (salonId) => {
+    const updated = salonsList.map((s) => {
+      if (s.id === salonId || s.salon_id === salonId) {
+        const currentStatus = s.status === 'blocked' ? 'active' : 'blocked';
+        return { ...s, status: currentStatus };
+      }
+      return s;
+    });
+    setSalonsList(updated);
+    localStorage.setItem('salongro_registered_salons', JSON.stringify(updated));
   };
 
   if (!isAuthenticated) {
@@ -51,8 +70,9 @@ export default function SuperAdmin({ salonsList, onToggleSalonStatus }) {
   }
 
   const filteredSalons = salonsList.filter(s => 
-    s.salon_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.salon_id.toLowerCase().includes(searchTerm.toLowerCase())
+    (s.salon_name && s.salon_name.toLowerCase().includes(searchTerm.toLowerCase())) || 
+    (s.id && s.id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (s.phone && s.phone.includes(searchTerm))
   );
 
   return (
@@ -82,14 +102,14 @@ export default function SuperAdmin({ salonsList, onToggleSalonStatus }) {
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
           <p className="text-xs text-slate-400 font-bold">Active Subscriptions</p>
           <p className="text-2xl font-black text-emerald-400 mt-1">
-            {salonsList.filter(s => s.is_active).length}
+            {salonsList.filter(s => s.status !== 'blocked').length}
           </p>
         </div>
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex items-center">
           <div className="w-full">
             <input
               type="text"
-              placeholder="Search by Salon Name or ID..."
+              placeholder="Search by Salon Name, Phone or ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
@@ -108,7 +128,7 @@ export default function SuperAdmin({ salonsList, onToggleSalonStatus }) {
             <thead className="bg-slate-950 text-slate-400">
               <tr>
                 <th className="p-3">Salon ID</th>
-                <th className="p-3">Salon Name & Owner</th>
+                <th className="p-3">Salon Name</th>
                 <th className="p-3">Mobile (User ID)</th>
                 <th className="p-3">Status</th>
                 <th className="p-3 text-right">Actions / Control</th>
@@ -121,15 +141,12 @@ export default function SuperAdmin({ salonsList, onToggleSalonStatus }) {
                 </tr>
               ) : (
                 filteredSalons.map((salon) => (
-                  <tr key={salon.salon_id} className="hover:bg-slate-950/50 transition">
-                    <td className="p-3 font-mono font-bold text-amber-400">{salon.salon_id}</td>
-                    <td className="p-3">
-                      <p className="font-bold text-white">{salon.salon_name}</p>
-                      <p className="text-[10px] text-slate-400">{salon.owner_name}</p>
-                    </td>
+                  <tr key={salon.id || salon.salon_id} className="hover:bg-slate-950/50 transition">
+                    <td className="p-3 font-mono font-bold text-amber-400">{salon.id || salon.salon_id}</td>
+                    <td className="p-3 font-bold text-white">{salon.salon_name}</td>
                     <td className="p-3 font-mono">{salon.phone}</td>
                     <td className="p-3">
-                      {salon.is_active ? (
+                      {salon.status !== 'blocked' ? (
                         <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-bold">
                           ACTIVE
                         </span>
@@ -141,14 +158,14 @@ export default function SuperAdmin({ salonsList, onToggleSalonStatus }) {
                     </td>
                     <td className="p-3 text-right space-x-2">
                       <button
-                        onClick={() => onToggleSalonStatus(salon.salon_id)}
+                        onClick={() => handleToggleSalonStatus(salon.id || salon.salon_id)}
                         className={`px-3 py-1.5 rounded-lg font-bold text-[10px] cursor-pointer ${
-                          salon.is_active 
+                          salon.status !== 'blocked' 
                             ? 'bg-rose-600/20 text-rose-400 hover:bg-rose-600/30' 
                             : 'bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30'
                         }`}
                       >
-                        {salon.is_active ? 'Block Access' : 'Activate Salon'}
+                        {salon.status !== 'blocked' ? 'Block Access' : 'Activate Salon'}
                       </button>
                     </td>
                   </tr>
@@ -160,4 +177,4 @@ export default function SuperAdmin({ salonsList, onToggleSalonStatus }) {
       </div>
     </div>
   );
-      }
+        }
