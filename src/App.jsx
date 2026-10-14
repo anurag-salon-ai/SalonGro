@@ -6,7 +6,6 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentSalon, setCurrentSalon] = useState(null);
 
-  // Auth Modes: 'login', 'signup', 'forgot', 'reset'
   const [authMode, setAuthMode] = useState('login');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +17,6 @@ export default function App() {
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  // App Data States
   const [catalog, setCatalog] = useState([]);
   const [clients, setClients] = useState([]);
   const [inventory, setInventory] = useState([]);
@@ -26,7 +24,6 @@ export default function App() {
   const [expenses, setExpenses] = useState([]);
   const [salonsList, setSalonsList] = useState([]);
 
-  // POS States
   const [cart, setCart] = useState([]);
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
@@ -34,7 +31,6 @@ export default function App() {
   const [paymentMode, setPaymentMode] = useState('Cash');
   const [customItem, setCustomItem] = useState({ name: '', price: '' });
 
-  // Settings Input States
   const [setSalonTitle, setSetSalonTitle] = useState('');
   const [setOwnerTitle, setSetOwnerTitle] = useState('');
   const [setAddress, setSetAddress] = useState('');
@@ -42,14 +38,12 @@ export default function App() {
   const [newServName, setNewServName] = useState('');
   const [newServPrice, setNewServPrice] = useState('');
 
-  // Inventory & Expense Inputs
   const [invName, setInvName] = useState('');
   const [invQty, setInvQty] = useState('');
   const [invPrice, setInvPrice] = useState('');
   const [expTitle, setExpTitle] = useState('');
   const [expAmount, setExpAmount] = useState('');
 
-  // Appointment Inputs
   const [apptClient, setApptClient] = useState('');
   const [apptPhone, setApptPhone] = useState('');
   const [apptService, setApptService] = useState('');
@@ -73,6 +67,7 @@ export default function App() {
   }, [isSuperAdminRoute]);
 
   const fetchAllData = async () => {
+    if (!currentSalon?.id) return;
     const cid = currentSalon.id;
     const [{ data: cat }, { data: cli }, { data: inv }, { data: app }, { data: exp }] = await Promise.all([
       supabase.from('catalog').select('*').eq('salon_id', cid),
@@ -144,8 +139,7 @@ export default function App() {
       setAuthLoading(false);
     }
   };
-
-  const addToCart = (item) => setCart([...cart, { ...item, qty: 1 }]);
+    const addToCart = (item) => setCart([...cart, { ...item, qty: 1 }]);
   const addCustomCart = () => {
     if (!customItem.name || !customItem.price) return;
     setCart([...cart, { id: Date.now().toString(), name: customItem.name, price: parseFloat(customItem.price), qty: 1 }]);
@@ -218,7 +212,8 @@ export default function App() {
     await supabase.from('expenses').insert([{ salon_id: currentSalon.id, title: expTitle, amount: parseFloat(expAmount) }]);
     setExpTitle(''); setExpAmount(''); fetchAllData();
   };
-    if (isSuperAdminRoute) {
+
+  if (isSuperAdminRoute) {
     return (
       <div className="p-8 max-w-6xl mx-auto space-y-6 bg-slate-950 text-white min-h-screen font-sans">
         <h1 className="text-2xl font-black text-amber-500 uppercase">SuperAdmin Panel</h1>
@@ -243,8 +238,7 @@ export default function App() {
       </div>
     );
   }
-
-  if (!isLoggedIn) {
+    if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans text-white">
         <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl w-full max-w-md space-y-6 shadow-2xl">
@@ -458,9 +452,6 @@ export default function App() {
               <h3 className="font-bold text-amber-400 text-sm">Add Service to Rate List</h3>
               <div className="flex gap-2">
                 <input type="text" placeholder="Service Name (e.g. Facial)" value={newServName} onChange={e => setNewServName(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-white flex-1" />
-                <input type="number" placeholder="Price ₹" value={newServPrice} onChange={e => setNewServPrice(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-white w
-                              <div className="flex gap-2">
-                <input type="text" placeholder="Service Name (e.g. Facial)" value={newServName} onChange={e => setNewServName(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-white flex-1" />
                 <input type="number" placeholder="Price ₹" value={newServPrice} onChange={e => setNewServPrice(e.target.value)} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-white w-32" />
                 <button type="button" onClick={handleAddCatalog} className="bg-amber-500 text-slate-950 font-black px-5 rounded-xl">+ Add Service</button>
               </div>
@@ -470,4 +461,5 @@ export default function App() {
       </main>
     </div>
   );
-}
+              }
+  
