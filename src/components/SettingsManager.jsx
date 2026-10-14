@@ -218,4 +218,4 @@ export default function SettingsManager({ salonData, onSaveSettings, catalogList
       </div>
     </div>
   );
-            }
+    }
