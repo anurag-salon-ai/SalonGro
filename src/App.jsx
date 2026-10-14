@@ -11,8 +11,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('pos');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentSalon, setCurrentSalon] = useState(null);
+  
+  // Catalog State for Settings & POS synchronization
+  const [catalogList, setCatalogList] = useState([
+    { id: 1, name: 'HAIR CUT', price: 250, type: 'SERVICE' },
+    { id: 2, name: 'FACIAL', price: 800, type: 'SERVICE' }
+  ]);
 
-  // Secret SuperAdmin Route Detection (URL: ?admin=true ya hash #superadmin)
   const isSuperAdminRoute = window.location.search.includes('admin=true') || window.location.hash === '#superadmin';
 
   if (isSuperAdminRoute) {
@@ -26,12 +31,16 @@ export default function App() {
     }} />;
   }
 
+  const handleSaveSettings = (updatedInfo) => {
+    setCurrentSalon(updatedInfo);
+    alert('Settings Saved Successfully!');
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row font-sans">
       {/* Sidebar Navigation */}
       <aside className="w-full md:w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col justify-between shrink-0">
         <div className="space-y-6">
-          {/* Logo / Brand */}
           <div className="flex items-center gap-3 px-2 py-1">
             <div className="w-9 h-9 bg-amber-500 rounded-xl flex items-center justify-center font-black text-slate-950 shadow-lg shadow-amber-500/20">
               SG
@@ -42,14 +51,11 @@ export default function App() {
             </div>
           </div>
 
-          {/* Nav Menu Links */}
           <nav className="space-y-1.5">
             <button
               onClick={() => setActiveTab('pos')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
-                activeTab === 'pos'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                activeTab === 'pos' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               ✂️ POS & Checkout
@@ -57,9 +63,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('crm')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
-                activeTab === 'crm'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                activeTab === 'crm' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               👥 Smart CRM
@@ -67,9 +71,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('inventory')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
-                activeTab === 'inventory'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                activeTab === 'inventory' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               📦 Inventory Manager
@@ -77,9 +79,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('appointments')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
-                activeTab === 'appointments'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                activeTab === 'appointments' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               📅 Appointments Calendar
@@ -87,9 +87,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('settings')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
-                activeTab === 'settings'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                activeTab === 'settings' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               ⚙️ Salon Settings
@@ -97,7 +95,6 @@ export default function App() {
           </nav>
         </div>
 
-        {/* Logout Button */}
         <div className="pt-4 border-t border-slate-800">
           <button
             onClick={() => setIsLoggedIn(false)}
@@ -110,12 +107,19 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto bg-slate-950 p-4 md:p-8">
-        {activeTab === 'pos' && <POSBilling salonData={currentSalon} />}
+        {activeTab === 'pos' && <POSBilling salonData={currentSalon} catalogList={catalogList} />}
         {activeTab === 'crm' && <SmartCRM salonData={currentSalon} />}
         {activeTab === 'inventory' && <InventoryManager salonData={currentSalon} />}
         {activeTab === 'appointments' && <AppointmentsCalendar salonData={currentSalon} />}
-        {activeTab === 'settings' && <SettingsManager salonData={currentSalon} />}
+        {activeTab === 'settings' && (
+          <SettingsManager 
+            salonData={currentSalon} 
+            onSaveSettings={handleSaveSettings} 
+            catalogList={catalogList} 
+            onUpdateCatalog={setCatalogList} 
+          />
+        )}
       </main>
     </div>
   );
-          }
+      }
