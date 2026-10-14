@@ -5,24 +5,29 @@ export default function POSBilling({ salonData }) {
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [selectedStaff, setSelectedStaff] = useState('');
+  const [paymentMode, setPaymentMode] = useState('Cash');
   
   // Total Level Discount
   const [totalDiscountValue, setTotalDiscountValue] = useState(0);
-  const [totalDiscountType, setTotalDiscountType] = useState('FIXED'); // 'FIXED' ya 'PERCENT'
+  const [totalDiscountType, setTotalDiscountType] = useState('FIXED');
   
   // GST Settings
-  const [gstType, setGstType] = useState('EXCLUSIVE'); // 'EXCLUSIVE' ya 'INCLUSIVE'
+  const [gstType, setGstType] = useState('EXCLUSIVE');
   
   // Single-Box Service Entry (Per-service discount optional)
   const [customItem, setCustomItem] = useState({ name: '', price: '', serviceDiscValue: '', serviceDiscType: 'FIXED' });
   const [isListening, setIsListening] = useState(false);
 
-  // Local Storage Sync
-  const savedSettings = JSON.parse(localStorage.getItem(`salon_settings_${salonData?.id || 'default'}`)) || salonData || {};
-  const [inventoryList, setInventoryList] = useState(JSON.parse(localStorage.getItem('salon_inventory')) || []);
+  // Multi-Tenant Isolation using Salon ID
+  const salonId = salonData?.id || 'default';
+  const savedSettings = JSON.parse(localStorage.getItem(`salon_settings_${salonId}`)) || salonData || {};
+  
+  const catalogList = savedSettings.catalog || [];
   const staffList = savedSettings.staff_list || [];
   const defaultGstRate = savedSettings.gst_percent || 0;
   const salonWhatsApp = savedSettings.whatsapp_number || savedSettings.phone || '';
+  const googleReviewUrl = savedSettings.google_review_url || 'https://g.page/review/salongro';
+  const salonName = savedSettings.salon_name || 'SalonGro Studio';
 
   // Zero-API Voice Billing
   const startVoiceBilling = () => {
@@ -49,7 +54,20 @@ export default function POSBilling({ salonData }) {
     recognition.start();
   };
 
-  // Add Item to Cart with OPTIONAL Per-Service Level Discount
+  const handleAddCatalogItem = (service) => {
+    const rawPrice = parseFloat(service.price);
+    const newItem = {
+      id: Date.now().toString() + Math.random(),
+      name: service.name,
+      originalPrice: rawPrice,
+      discountedPrice: rawPrice,
+      discValue: 0,
+      discType: 'FIXED',
+      qty: 1
+    };
+    setCart([...cart, newItem]);
+  };
+
   const handleAddCustomService = () => {
     if (!customItem.name || !customItem.price) {
       alert('Kripya Service Name aur Rate dono bharein!');
@@ -58,7 +76,6 @@ export default function POSBilling({ salonData }) {
     const rawPrice = parseFloat(customItem.price);
     let itemDiscount = 0;
     
-    // Check if optional discount is provided
     const discInput = parseFloat(customItem.serviceDiscValue);
     if (!isNaN(discInput) && discInput > 0) {
       if (customItem.serviceDiscType === 'PERCENT') {
@@ -88,24 +105,33 @@ export default function POSBilling({ salonData }) {
     setCart(cart.filter(c => c.id !== id));
   };
 
-  // Dedicated One-Click Client Save Option
+  // One-Click Client Registration (Isolated per Salon)
   const handleSaveClientOnly = () => {
     if (!clientName || !clientPhone) {
-      alert('Client Name aur Number dono bharein!');
+      alert('Client Name aur Phone Number dono bharein!');
       return;
     }
     const generatedClientID = `#SG-${Math.floor(1000 + Math.random() * 9000)}`;
-    const existingClients = JSON.parse(localStorage.getItem('salon_clients')) || [];
+    const storageKey = `salon_clients_${salonId}`;
+    const existingClients = JSON.parse(localStorage.getItem(storageKey)) || [];
+    
+    const duplicate = existingClients.find(c => c.phone === clientPhone);
+    if (duplicate) {
+      alert(`Client pehle se saved hai! ID: ${duplicate.id}`);
+      return;
+    }
+
     const newClient = {
       id: generatedClientID,
       name: clientName,
       phone: clientPhone,
       visits: 0,
       spent: 0,
-      tier: 'New'
+      walletBalance: 0,
+      tier: 'Regular'
     };
-    localStorage.setItem('salon_clients', JSON.stringify([...existingClients, newClient]));
-    alert(`✅ Client Safaltapoorvak Save Ho Gaya! ID: ${generatedClientID}`);
+    localStorage.setItem(storageKey, JSON.stringify([...existingClients, newClient]));
+    alert(`✅ Client Successfully Saved! Client ID: ${generatedClientID}`);
   };
 
   // Calculate Totals
@@ -129,10 +155,10 @@ export default function POSBilling({ salonData }) {
 
   const grandTotal = Math.round(gstType === 'EXCLUSIVE' ? taxableAmount + gstAmount : taxableAmount);
 
-  // Complete Checkout with Stock Minus + Auto Client ID
+  // Complete Checkout with Barcode & Isolated Storage Sync
   const handleProcessBill = (isThermalPrint = false) => {
     if (!clientName || !clientPhone) {
-      alert('Kripya Client Name aur Number zaroor bharein!');
+      alert('Kripya Client Name aur Phone Number zaroor bharein!');
       return;
     }
     if (cart.length === 0) {
@@ -140,11 +166,19 @@ export default function POSBilling({ salonData }) {
       return;
     }
 
-    const generatedClientID = `#SG-${Math.floor(1000 + Math.random() * 9000)}`;
-    const billNumber = `BILL-${Math.floor(100 + Math.random() * 900)}`;
+    const clientsKey = `salon_clients_${salonId}`;
+    const billsKey = `salon_bills_${salonId}`;
+    const inventoryKey = `salon_inventory_${salonId}`;
 
-    // 1. Stock Auto-Minus Logic
-    const currentStock = JSON.parse(localStorage.getItem('salon_inventory')) || [];
+    const existingClients = JSON.parse(localStorage.getItem(clientsKey)) || [];
+    const clientIndex = existingClients.findIndex(c => c.phone === clientPhone);
+
+    const generatedClientID = clientIndex >= 0 ? existingClients[clientIndex].id : `#SG-${Math.floor(1000 + Math.random() * 9000)}`;
+    const billNumber = `BILL-${Math.floor(100 + Math.random() * 900)}`;
+    const barcodeText = `BAR-${Math.floor(10000000 + Math.random() * 90000000)}`;
+
+    // 1. Stock Auto-Minus (Isolated)
+    const currentStock = JSON.parse(localStorage.getItem(inventoryKey)) || [];
     const updatedStock = currentStock.map(stockItem => {
       const soldItem = cart.find(c => c.name.toLowerCase() === stockItem.name.toLowerCase());
       if (soldItem) {
@@ -152,22 +186,18 @@ export default function POSBilling({ salonData }) {
       }
       return stockItem;
     });
-    localStorage.setItem('salon_inventory', JSON.stringify(updatedStock));
-    setInventoryList(updatedStock);
+    localStorage.setItem(inventoryKey, JSON.stringify(updatedStock));
 
-    // 2. Save Client & Dynamic Category Tier
-    const existingClients = JSON.parse(localStorage.getItem('salon_clients')) || [];
-    const existingClientIndex = existingClients.findIndex(c => c.phone === clientPhone);
-    
+    // 2. Save Client Record (Isolated)
     let updatedClients = [...existingClients];
-    if (existingClientIndex >= 0) {
-      const prevSpent = updatedClients[existingClientIndex].spent + grandTotal;
-      const prevVisits = updatedClients[existingClientIndex].visits + 1;
-      updatedClients[existingClientIndex] = {
-        ...updatedClients[existingClientIndex],
+    if (clientIndex >= 0) {
+      const prevSpent = updatedClients[clientIndex].spent + grandTotal;
+      const prevVisits = updatedClients[clientIndex].visits + 1;
+      updatedClients[clientIndex] = {
+        ...updatedClients[clientIndex],
         visits: prevVisits,
         spent: prevSpent,
-        tier: prevSpent > 5000 ? 'VIP' : 'Regular'
+        tier: prevSpent >= 5000 ? 'VIP' : 'Regular'
       };
     } else {
       updatedClients.push({
@@ -176,11 +206,32 @@ export default function POSBilling({ salonData }) {
         phone: clientPhone,
         visits: 1,
         spent: grandTotal,
-        tier: grandTotal > 5000 ? 'VIP' : 'Regular'
+        walletBalance: 0,
+        tier: grandTotal >= 5000 ? 'VIP' : 'Regular'
       });
     }
-    localStorage.setItem('salon_clients', JSON.stringify(updatedClients));
+    localStorage.setItem(clientsKey, JSON.stringify(updatedClients));
 
+    // 3. Save Bill History (Isolated)
+    const billRecord = {
+      billNumber,
+      barcode: barcodeText,
+      clientName,
+      clientPhone,
+      clientId: generatedClientID,
+      staff: selectedStaff || 'General',
+      items: cart,
+      subtotal,
+      discount: calculatedTotalDiscount,
+      gst: Math.round(gstAmount),
+      grandTotal,
+      paymentMode,
+      date: new Date().toISOString()
+    };
+    const existingBills = JSON.parse(localStorage.getItem(billsKey)) || [];
+    localStorage.setItem(billsKey, JSON.stringify([billRecord, ...existingBills]));
+
+    // Thermal Print / WhatsApp Bill Trigger
     if (isThermalPrint) {
       const printWindow = window.open('', '_blank');
       printWindow.document.write(`
@@ -194,10 +245,11 @@ export default function POSBilling({ salonData }) {
               .table { width: 100%; text-align: left; border-collapse: collapse; }
               .table th, .table td { padding: 4px 0; }
               .text-right { text-align: right; }
+              .barcode { font-size: 16px; font-weight: bold; letter-spacing: 3px; margin-top: 10px; }
             </style>
           </head>
           <body>
-            <div class="header">${savedSettings.salon_name || 'SalonGro Studio'}</div>
+            <div class="header">${salonName}</div>
             <div>Phone: ${salonWhatsApp}</div>
             <div class="line"></div>
             <div style="text-align:left;">
@@ -217,23 +269,25 @@ export default function POSBilling({ salonData }) {
             <div class="line"></div>
             <div style="text-align:right;">
               <div>Subtotal: ₹${subtotal}</div>
-              <div>Total Discount: -₹${calculatedTotalDiscount}</div>
-              <div>GST (${defaultGstRate}%): ₹${Math.round(gstAmount)}</div>
+              <div>Discount: -₹${calculatedTotalDiscount}</div>
+              <div>GST: ₹${Math.round(gstAmount)}</div>
               <div style="font-weight:bold; font-size:14px;">Grand Total: ₹${grandTotal}</div>
             </div>
+            <div class="line"></div>
+            <div class="barcode">*${barcodeText}*</div>
+            <div style="font-size: 10px; margin-top:5px;">Thank You! Visit Again.</div>
             <script>window.print(); setTimeout(() => window.close(), 1000);</script>
           </body>
         </html>
       `);
       printWindow.document.close();
     } else {
-      const reviewUrl = savedSettings.google_review_url || '';
-      const itemsListText = cart.map(i => `• ${i.name} - ₹${i.discountedPrice} (Qty: ${i.qty})`).join('\n');
-      const whatsappMsg = `🧾 *${savedSettings.salon_name || 'SalonGro'} Digital Bill*\nBill No: ${billNumber}\nClient ID: ${generatedClientID}\nClient Name: ${clientName}\nStaff: ${selectedStaff || 'Default'}\n\n📋 *Services:*\n${itemsListText}\n\nSubtotal: ₹${subtotal}\nDiscount: -₹${calculatedTotalDiscount}\nGST: ₹${Math.round(gstAmount)}\n*Net Amount:* ₹${grandTotal}\n\n⭐ Review Us: ${reviewUrl}`;
+      const itemsListText = cart.map(i => `• ${i.name} - ₹${i.discountedPrice}`).join('\n');
+      const whatsappMsg = `🧾 *${salonName} Digital Bill*\nBill No: ${billNumber}\nClient ID: ${generatedClientID}\nClient Name: ${clientName}\nPayment: ${paymentMode}\n\n📋 *Services:*\n${itemsListText}\n\nSubtotal: ₹${subtotal}\nDiscount: -₹${calculatedTotalDiscount}\nGST: ₹${Math.round(gstAmount)}\n*Net Amount:* ₹${grandTotal}\n\nBarcode: ${barcodeText}\n\n⭐ *Review Us on Google:* ${googleReviewUrl}\n\nThank you for visiting!`;
       window.open(`https://wa.me/91${clientPhone}?text=${encodeURIComponent(whatsappMsg)}`, '_blank');
     }
 
-    alert(`✅ Billing Complete! Auto Client ID: ${generatedClientID}`);
+    alert(`✅ Billing Complete & Saved! Barcode: ${barcodeText}`);
     setCart([]);
     setClientName('');
     setClientPhone('');
@@ -245,9 +299,9 @@ export default function POSBilling({ salonData }) {
       <div className="lg:col-span-2 space-y-6">
         <h2 className="text-xl font-black text-amber-500">✂️ POS Billing & Checkout</h2>
 
-        {/* Client Name & Phone Direct Save Option */}
+        {/* Client Info & Direct Save */}
         <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3">
-          <h3 className="font-bold text-sm text-amber-400">👤 Client Information & One-Click Save</h3>
+          <h3 className="font-bold text-sm text-amber-400">👤 Client Information & Direct Save</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
             <input
               type="text"
@@ -264,6 +318,7 @@ export default function POSBilling({ salonData }) {
               className="bg-slate-950 border border-slate-800 p-3 rounded-xl focus:outline-none focus:border-amber-500 text-white"
             />
             <button
+              type="button"
               onClick={handleSaveClientOnly}
               className="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold p-3 rounded-xl border border-slate-700 cursor-pointer"
             >
@@ -272,11 +327,34 @@ export default function POSBilling({ salonData }) {
           </div>
         </div>
 
-        {/* Single-Box Quick Entry with Optional Per-Service Discount */}
+        {/* Service Rate List Catalog */}
+        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3">
+          <h3 className="font-bold text-sm text-amber-400">📋 Service Rate List (1-Click Add)</h3>
+          {catalogList.length === 0 ? (
+            <p className="text-xs text-slate-500 italic">Rate List khali hai. Salon Settings se services add karein!</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
+              {catalogList.map((service, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => handleAddCatalogItem(service)}
+                  className="bg-slate-950 hover:bg-slate-800 border border-slate-800 p-3 rounded-xl text-left transition flex justify-between items-center cursor-pointer group"
+                >
+                  <span className="text-xs text-slate-200 font-semibold truncate group-hover:text-amber-400">{service.name}</span>
+                  <span className="text-xs font-black text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-lg">₹{service.price}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Custom Service Entry + Optional Discount */}
         <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3">
           <div className="flex justify-between items-center">
-            <h3 className="font-bold text-sm text-amber-400">⚡ Single-Box Quick Entry (Optional Per-Service Discount)</h3>
+            <h3 className="font-bold text-sm text-amber-400">⚡ Single-Box Custom Service Entry</h3>
             <button
+              type="button"
               onClick={startVoiceBilling}
               className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'}`}
             >
@@ -300,7 +378,6 @@ export default function POSBilling({ salonData }) {
               className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-white"
             />
             
-            {/* Optional Per Service Discount (Flat / %) */}
             <div className="flex gap-1">
               <select
                 value={customItem.serviceDiscType}
@@ -320,6 +397,7 @@ export default function POSBilling({ salonData }) {
             </div>
 
             <button
+              type="button"
               onClick={handleAddCustomService}
               className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black p-3 rounded-xl cursor-pointer"
             >
@@ -329,18 +407,35 @@ export default function POSBilling({ salonData }) {
         </div>
       </div>
 
-      {/* Right Column: Checkout + Total Discount + GST */}
+      {/* Right Column: Checkout & Payment Options */}
       <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 h-fit">
         <h3 className="font-bold text-amber-400 text-base border-b border-slate-800 pb-2">🛒 Active Bill Summary</h3>
 
-        <select
-          value={selectedStaff}
-          onChange={(e) => setSelectedStaff(e.target.value)}
-          className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-slate-300"
-        >
-          <option value="">Select Staff Member</option>
-          {staffList.map((st, i) => <option key={i} value={st}>{st}</option>)}
-        </select>
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-400 uppercase">Select Staff Member</label>
+          <select
+            value={selectedStaff}
+            onChange={(e) => setSelectedStaff(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-slate-300"
+          >
+            <option value="">Select Staff</option>
+            {staffList.map((st, i) => <option key={i} value={st}>{st}</option>)}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-400 uppercase">Payment Mode</label>
+          <select
+            value={paymentMode}
+            onChange={(e) => setPaymentMode(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs text-amber-400 font-bold"
+          >
+            <option value="Cash">Cash</option>
+            <option value="UPI / QR Code">UPI / QR Code</option>
+            <option value="Card">Card</option>
+            <option value="Prepaid Wallet">Prepaid Wallet</option>
+          </select>
+        </div>
 
         {/* Selected Services List */}
         <div className="space-y-2 border-t border-b border-slate-800 py-3 max-h-48 overflow-y-auto text-xs">
@@ -356,13 +451,13 @@ export default function POSBilling({ salonData }) {
                     Net: ₹{item.discountedPrice}
                   </div>
                 </div>
-                <button onClick={() => removeFromCart(item.id)} className="text-rose-400 font-bold px-1 cursor-pointer">✕</button>
+                <button type="button" onClick={() => removeFromCart(item.id)} className="text-rose-400 font-bold px-1 cursor-pointer">✕</button>
               </div>
             ))
           )}
         </div>
 
-        {/* Total Bill Level Discount & GST */}
+        {/* Discount & GST Controls */}
         <div className="space-y-3 text-xs bg-slate-950 p-3 rounded-xl border border-slate-800">
           <div>
             <label className="block text-[10px] text-slate-400 mb-1 font-bold">TOTAL BILL DISCOUNT (OPTIONAL)</label>
@@ -370,7 +465,7 @@ export default function POSBilling({ salonData }) {
               <select
                 value={totalDiscountType}
                 onChange={(e) => setTotalDiscountType(e.target.value)}
-                className="bg-slate-900 border border-slate-800 p-2 rounded-lg text-amber-400 font-bold"
+      900 border border-slate-800 p-2 rounded-lg text-amber-400 font-bold"
               >
                 <option value="FIXED">Flat (₹)</option>
                 <option value="PERCENT">Percent (%)</option>
@@ -416,12 +511,14 @@ export default function POSBilling({ salonData }) {
 
         <div className="space-y-2 pt-2">
           <button
+            type="button"
             onClick={() => handleProcessBill(false)}
             className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3 rounded-xl text-xs transition cursor-pointer"
           >
-            📱 Send Zero-API WhatsApp Bill
+            📱 Send Zero-API WhatsApp Bill + Barcode
           </button>
           <button
+            type="button"
             onClick={() => handleProcessBill(true)}
             className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-3 rounded-xl text-xs transition cursor-pointer"
           >
@@ -431,4 +528,4 @@ export default function POSBilling({ salonData }) {
       </div>
     </div>
   );
-      }
+}
