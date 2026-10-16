@@ -628,7 +628,7 @@ function DynamicPluginRegistry({ activeModule, session }) {
     case 'settings': return <SalonSettingsModule session={session} />;
     default: return <div className="p-6 text-amber-400">Module loaded via Plugin Registry.</div>;
   }
-}
+
 
 
 export default function SalonGroEnterprisePlatform() {
