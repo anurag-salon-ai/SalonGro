@@ -630,25 +630,18 @@ function DynamicPluginRegistry({ activeModule, session }) {
     default: return <div className="p-6 text-amber-400">Module loaded via Plugin Registry.</div>;
   }
 }
-
-export default function SalonGroEnterprisePlatform() {
-  const [currentSession, setCurrentSession] = useState(null);
-  const [activeTab, setActiveTab] = useState('billing');
-  const [loginForm, setLoginForm] = useState({ code: '', password: '' });
-
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    if (loginForm.code === 'superadmin' && loginForm.password === 'masterkey123') {
-      setCurrentSession({ salonCode: 'SUPER_ADMIN', role: 'SUPER_ADMIN' });
-      return;
-    }
-    const { data } = await supabase.from('salons').select('*').eq('salon_code', loginForm.code).eq('password', loginForm.password).single();
-    if (data) {
-      setCurrentSession({ ...data, salonCode: data.salon_code, role: 'OWNER' });
-    } else {
-      alert("Invalid Salon Code or Password!");
-    }
-  };
+// MODULAR EXTENSION PLUGINS: Future features (Biometric, Multi-location, etc.)
+// can be added here seamlessly without rewriting core logic.
+function DynamicPluginRegistry({ activeModule, session }) {
+  switch(activeModule) {
+    case 'billing': return <SalonPOSModule session={session} />;
+    case 'crm': return <SalonCRMModule session={session} />;
+    case 'expenses': return <SalonExpensesModule session={session} />;
+    case 'reports': return <SalonReportsModule session={session} />;
+    case 'settings': return <SalonSettingsModule session={session} />;
+    default: return <div className="p-6 text-amber-400">Module loaded via Plugin Registry.</div>;
+  }
+}
 
   if (!currentSession) {
     return (
@@ -703,5 +696,4 @@ export default function SalonGroEnterprisePlatform() {
       </div>
     </div>
   );
-      }
-
+                              }
