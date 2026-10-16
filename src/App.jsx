@@ -618,8 +618,7 @@ function SalonPOSModule({ session }) {
     </div>
   );
                 }
-  // MODULAR EXTENSION PLUGINS: Future features (Biometric, Multi-location, etc.)
-// can be added here seamlessly without rewriting core logic.
+ // MODULAR EXTENSION PLUGINS: Future features (Biometric, Multi-location, etc.)
 function DynamicPluginRegistry({ activeModule, session }) {
   switch(activeModule) {
     case 'billing': return <SalonPOSModule session={session} />;
@@ -630,17 +629,7 @@ function DynamicPluginRegistry({ activeModule, session }) {
     default: return <div className="p-6 text-amber-400">Module loaded via Plugin Registry.</div>;
   }
 }
-  // MODULAR EXTENSION PLUGINS: Future features (Biometric, Multi-location, etc.)
-function DynamicPluginRegistry({ activeModule, session }) {
-  switch(activeModule) {
-    case 'billing': return <SalonPOSModule session={session} />;
-    case 'crm': return <SalonCRMModule session={session} />;
-    case 'expenses': return <SalonExpensesModule session={session} />;
-    case 'reports': return <SalonReportsModule session={session} />;
-    case 'settings': return <SalonSettingsModule session={session} />;
-    default: return <div className="p-6 text-amber-400">Module loaded via Plugin Registry.</div>;
-  }
-}
+
 
 export default function SalonGroEnterprisePlatform() {
   const [currentSession, setCurrentSession] = useState(null);
