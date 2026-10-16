@@ -618,7 +618,7 @@ function SalonPOSModule({ session }) {
     </div>
   );
                 }
- // MODULAR EXTENSION PLUGINS: Future features (Biometric, Multi-location, etc.)
+// MODULAR EXTENSION PLUGINS: Future features (Biometric, Multi-location, etc.)
 function DynamicPluginRegistry({ activeModule, session }) {
   switch(activeModule) {
     case 'billing': return <SalonPOSModule session={session} />;
@@ -628,13 +628,12 @@ function DynamicPluginRegistry({ activeModule, session }) {
     case 'settings': return <SalonSettingsModule session={session} />;
     default: return <div className="p-6 text-amber-400">Module loaded via Plugin Registry.</div>;
   }
-
-
+}
 
 export default function SalonGroEnterprisePlatform() {
   const [currentSession, setCurrentSession] = useState(null);
   const [activeTab, setActiveTab] = useState('billing');
-  const [authMode, setAuthMode] = useState('login'); // 'login' ya 'register'
+  const [authMode, setAuthMode] = useState('login'); 
   
   const [loginForm, setLoginForm] = useState({ code: '', password: '' });
   const [regForm, setRegForm] = useState({
@@ -691,7 +690,6 @@ export default function SalonGroEnterprisePlatform() {
             <p className="text-xs text-slate-400">Commercial POS & Multi-Owner Platform</p>
           </div>
 
-          {/* Toggle Tabs */}
           <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
             <button 
               type="button" 
@@ -767,4 +765,4 @@ export default function SalonGroEnterprisePlatform() {
       </div>
     </div>
   );
-                }
+   }
