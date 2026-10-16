@@ -630,27 +630,11 @@ function DynamicPluginRegistry({ activeModule, session }) {
     default: return <div className="p-6 text-amber-400">Module loaded successfully via plugin architecture.</div>;
   }
 }
-  export default function SalonGroEnterprisePlatform() {
+  // --- 8. MAIN APP COMPONENT (Single Default Export - Isme 'export default' lagana hai) ---
+export default function SalonGroEnterprisePlatform() {
   const [currentSession, setCurrentSession] = useState(null);
   const [activeTab, setActiveTab] = useState('billing');
   const [loginForm, setLoginForm] = useState({ code: '', password: '' });
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-
-  useEffect(() => {
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    });
-  }, []);
-
-  const handleDownloadApp = () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
-    } else {
-      alert("App download/install option active. Open browser menu and select 'Add to Home Screen'.");
-    }
-  };
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -662,7 +646,7 @@ function DynamicPluginRegistry({ activeModule, session }) {
     if (data) {
       setCurrentSession({ ...data, salonCode: data.salon_code, role: 'OWNER' });
     } else {
-      alert("Invalid Credentials! Check Salon Code or Password.");
+      alert("Invalid Salon Code or Password!");
     }
   };
 
@@ -672,7 +656,7 @@ function DynamicPluginRegistry({ activeModule, session }) {
         <form onSubmit={handleLoginSubmit} className="bg-slate-900 p-8 rounded-3xl border border-slate-800 w-full max-w-md space-y-4 shadow-2xl">
           <h2 className="text-2xl font-bold text-amber-400 text-center">SalonGro Enterprise POS</h2>
           <p className="text-xs text-slate-400 text-center">Secure Multi-Tenant SaaS Salon Management</p>
-          <input type="text" placeholder="Salon Code (e.g. ak_salon) or superadmin" value={loginForm.code} onChange={e=>setLoginForm({...loginForm, code: e.target.value})} className="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-white text-sm" required />
+          <input type="text" placeholder="Salon Code or superadmin" value={loginForm.code} onChange={e=>setLoginForm({...loginForm, code: e.target.value})} className="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-white text-sm" required />
           <input type="password" placeholder="Password" value={loginForm.password} onChange={e=>setLoginForm({...loginForm, password: e.target.value})} className="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-white text-sm" required />
           <button type="submit" className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition shadow-lg">Login to Salon Dashboard</button>
         </form>
@@ -687,14 +671,9 @@ function DynamicPluginRegistry({ activeModule, session }) {
   return (
     <div className="flex h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
       <div className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col">
-        <div className="p-4 border-b border-slate-800 flex flex-col gap-2">
-          <div>
-            <h1 className="font-bold text-amber-400">{currentSession.salon_name}</h1>
-            <span className="text-xs text-emerald-400 font-semibold">● Verified Hub (Isolated)</span>
-          </div>
-          <button onClick={handleDownloadApp} className="w-full py-1.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold hover:bg-amber-500 hover:text-slate-950 transition">
-            📥 Download App
-          </button>
+        <div className="p-4 border-b border-slate-800">
+          <h1 className="font-bold text-amber-400">{currentSession.salon_name}</h1>
+          <span className="text-xs text-emerald-400 font-semibold">● Verified Hub</span>
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -703,7 +682,7 @@ function DynamicPluginRegistry({ activeModule, session }) {
             { id: 'crm', label: 'Customer Profiles & CRM' },
             { id: 'expenses', label: 'Expense Tracker' },
             { id: 'reports', label: 'Enterprise Reports' },
-            { id: 'settings', label: 'Salon Settings & Profile' }
+            { id: 'settings', label: 'Salon Settings & Password' }
           ].map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)} className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition ${activeTab === t.id ? 'bg-amber-500 text-slate-950 font-bold shadow' : 'text-slate-300 hover:bg-slate-800'}`}>{t.label}</button>
           ))}
@@ -718,15 +697,13 @@ function DynamicPluginRegistry({ activeModule, session }) {
         <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center px-6">
           <h2 className="text-lg font-bold text-amber-400 uppercase tracking-wider">{activeTab} Control Hub</h2>
         </header>
-        <main className="flex-1 p-6 overflow-y-auto bg-slate-955">
+        <main className="flex-1 p-6 overflow-y-auto">
           <DynamicPluginRegistry activeModule={activeTab} session={currentSession} />
         </main>
       </div>
     </div>
   );
-  }
-  
-  
+          }
   
   
   
