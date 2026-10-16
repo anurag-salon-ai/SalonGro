@@ -627,10 +627,9 @@ function DynamicPluginRegistry({ activeModule, session }) {
     case 'expenses': return <SalonExpensesModule session={session} />;
     case 'reports': return <SalonReportsModule session={session} />;
     case 'settings': return <SalonSettingsModule session={session} />;
-    default: return <div className="p-6 text-amber-400">Module loaded successfully via plugin architecture.</div>;
+    default: return <div className="p-6 text-amber-400">Module loaded via Plugin Registry.</div>;
   }
 }
-  // --- 8. MAIN APP COMPONENT (Single Default Export - Isme 'export default' lagana hai) ---
 export default function SalonGroEnterprisePlatform() {
   const [currentSession, setCurrentSession] = useState(null);
   const [activeTab, setActiveTab] = useState('billing');
