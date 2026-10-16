@@ -630,8 +630,7 @@ function DynamicPluginRegistry({ activeModule, session }) {
     default: return <div className="p-6 text-amber-400">Module loaded via Plugin Registry.</div>;
   }
 }
-// MODULAR EXTENSION PLUGINS: Future features (Biometric, Multi-location, etc.)
-// can be added here seamlessly without rewriting core logic.
+  // MODULAR EXTENSION PLUGINS: Future features (Biometric, Multi-location, etc.)
 function DynamicPluginRegistry({ activeModule, session }) {
   switch(activeModule) {
     case 'billing': return <SalonPOSModule session={session} />;
@@ -643,16 +642,99 @@ function DynamicPluginRegistry({ activeModule, session }) {
   }
 }
 
+export default function SalonGroEnterprisePlatform() {
+  const [currentSession, setCurrentSession] = useState(null);
+  const [activeTab, setActiveTab] = useState('billing');
+  const [authMode, setAuthMode] = useState('login'); // 'login' ya 'register'
+  
+  const [loginForm, setLoginForm] = useState({ code: '', password: '' });
+  const [regForm, setRegForm] = useState({
+    email: '',
+    salonName: '',
+    ownerName: '',
+    mobile: '',
+    password: ''
+  });
+
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    if (loginForm.code === 'superadmin' && loginForm.password === 'masterkey123') {
+      setCurrentSession({ salonCode: 'SUPER_ADMIN', role: 'SUPER_ADMIN' });
+      return;
+    }
+    const { data } = await supabase.from('salons').select('*').eq('salon_code', loginForm.code).eq('password', loginForm.password).single();
+    if (data) {
+      setCurrentSession({ ...data, salonCode: data.salon_code, role: 'OWNER' });
+    } else {
+      alert("Invalid Salon Code or Password!");
+    }
+  };
+
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+    const salonCode = 'SG-' + Math.floor(1000 + Math.random() * 9000);
+    const { error } = await supabase.from('salons').insert([
+      {
+        salon_code: salonCode,
+        email: regForm.email,
+        salon_name: regForm.salonName,
+        owner_name: regForm.ownerName,
+        phone: regForm.mobile,
+        password: regForm.password
+      }
+    ]);
+
+    if (!error) {
+      alert("Account Created Successfully! Aapka Salon Code hai: " + salonCode);
+      setAuthMode('login');
+    } else {
+      alert("Registration Failed: " + error.message);
+    }
+  };
+
   if (!currentSession) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-950 p-4">
-        <form onSubmit={handleLoginSubmit} className="bg-slate-900 p-8 rounded-3xl border border-slate-800 w-full max-w-md space-y-4 shadow-2xl">
-          <h2 className="text-2xl font-bold text-amber-400 text-center">SalonGro Enterprise POS</h2>
-          <p className="text-xs text-slate-400 text-center">Secure Multi-Tenant SaaS Salon Management</p>
-          <input type="text" placeholder="Salon Code or superadmin" value={loginForm.code} onChange={e=>setLoginForm({...loginForm, code: e.target.value})} className="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-white text-sm" required />
-          <input type="password" placeholder="Password" value={loginForm.password} onChange={e=>setLoginForm({...loginForm, password: e.target.value})} className="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-white text-sm" required />
-          <button type="submit" className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition shadow-lg">Login to Salon Dashboard</button>
-        </form>
+        <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 w-full max-w-md space-y-6 shadow-2xl">
+          <div className="text-center space-y-2">
+            <div className="w-12 h-12 bg-amber-500 rounded-xl mx-auto flex items-center justify-center text-slate-950 font-bold text-xl">SG</div>
+            <h2 className="text-2xl font-bold text-amber-400">SALONGRO POS</h2>
+            <p className="text-xs text-slate-400">Commercial POS & Multi-Owner Platform</p>
+          </div>
+
+          {/* Toggle Tabs */}
+          <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+            <button 
+              type="button" 
+              onClick={() => setAuthMode('login')} 
+              className={`py-2 text-xs font-bold rounded-lg transition ${authMode === 'login' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}>
+              Owner / Staff Login
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setAuthMode('register')} 
+              className={`py-2 text-xs font-bold rounded-lg transition ${authMode === 'register' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}>
+              New Registration
+            </button>
+          </div>
+
+          {authMode === 'login' ? (
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <input type="text" placeholder="Salon Code or superadmin" value={loginForm.code} onChange={e=>setLoginForm({...loginForm, code: e.target.value})} className="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-white text-sm" required />
+              <input type="password" placeholder="Password" value={loginForm.password} onChange={e=>setLoginForm({...loginForm, password: e.target.value})} className="w-full bg-slate-950 border border-slate-700 p-3 rounded-xl text-white text-sm" required />
+              <button type="submit" className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition shadow-lg">Login to Salon Dashboard</button>
+            </form>
+          ) : (
+            <form onSubmit={handleRegisterSubmit} className="space-y-3">
+              <input type="email" placeholder="Email *" value={regForm.email} onChange={e=>setRegForm({...regForm, email: e.target.value})} className="w-full bg-slate-950 border border-slate-700 p-2.5 rounded-xl text-white text-sm" required />
+              <input type="text" placeholder="Salon / Spa Name *" value={regForm.salonName} onChange={e=>setRegForm({...regForm, salonName: e.target.value})} className="w-full bg-slate-950 border border-slate-700 p-2.5 rounded-xl text-white text-sm" required />
+              <input type="text" placeholder="Owner / Manager Name *" value={regForm.ownerName} onChange={e=>setRegForm({...regForm, ownerName: e.target.value})} className="w-full bg-slate-950 border border-slate-700 p-2.5 rounded-xl text-white text-sm" required />
+              <input type="text" placeholder="Mobile Number (User ID) *" value={regForm.mobile} onChange={e=>setRegForm({...regForm, mobile: e.target.value})} className="w-full bg-slate-950 border border-slate-700 p-2.5 rounded-xl text-white text-sm" required />
+              <input type="password" placeholder="Password *" value={regForm.password} onChange={e=>setRegForm({...regForm, password: e.target.value})} className="w-full bg-slate-950 border border-slate-700 p-2.5 rounded-xl text-white text-sm" required />
+              <button type="submit" className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition shadow-lg text-sm">CREATE ACCOUNT & START TRIAL</button>
+            </form>
+          )}
+        </div>
       </div>
     );
   }
@@ -696,4 +778,4 @@ function DynamicPluginRegistry({ activeModule, session }) {
       </div>
     </div>
   );
-                              }
+                }
