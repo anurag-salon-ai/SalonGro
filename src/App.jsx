@@ -618,7 +618,7 @@ function SalonPOSModule({ session }) {
     </div>
   );
                 }
-  // MODULAR EXTENSION PLUGINS: Future features (Biometric, Multi-location, etc.) 
+  // MODULAR EXTENSION PLUGINS: Future features (Biometric, Multi-location, etc.)
 // can be added here seamlessly without rewriting core logic.
 function DynamicPluginRegistry({ activeModule, session }) {
   switch(activeModule) {
@@ -630,6 +630,7 @@ function DynamicPluginRegistry({ activeModule, session }) {
     default: return <div className="p-6 text-amber-400">Module loaded via Plugin Registry.</div>;
   }
 }
+
 export default function SalonGroEnterprisePlatform() {
   const [currentSession, setCurrentSession] = useState(null);
   const [activeTab, setActiveTab] = useState('billing');
@@ -702,9 +703,5 @@ export default function SalonGroEnterprisePlatform() {
       </div>
     </div>
   );
-          }
-  
-  
-  
-  
-  
+      }
+
